@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify, send_from_directory
+cat > /mnt/user-data/outputs/app.py << 'EOF'
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import anthropic
 import os
 
-app = Flask(__name__, static_folder='static')
+app = Flask(__name__)
 CORS(app)
 
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
@@ -97,7 +98,7 @@ def get_week_data(grade, week, lesson_type):
 
 @app.route("/")
 def index():
-    return send_from_directory("static", "index.html")
+    return send_file("index.html")
 
 @app.route("/generate", methods=["POST"])
 def generate():
@@ -146,3 +147,5 @@ LO: students will be able to {d['lo']}{swim_line}"""
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+EOF
+echo "done"
