@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEMS PE Lesson Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#1C2E6E;--navy-l:#2A3F8F;--cyan:#00B4D8;--cyan-l:#90E0EF;--gold:#F4A61C;--green:#16A34A;--red:#DC2626;--amber:#D97706;--bg:#F0F4FF;--card:#fff;--text:#1A1A2E;--muted:#6B7280;--border:#E2E8F0;--r:14px;--sh:0 4px 24px rgba(28,46,110,.10)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  header{background:var(--navy);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:64px;box-shadow:0 2px 12px rgba(0,0,0,.18)}
+  .logo{display:flex;align-items:center;gap:12px}
+  .logo-gem{width:36px;height:36px;background:linear-gradient(135deg,var(--cyan),var(--gold));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .logo-text{color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px}
+  .logo-sub{color:var(--cyan-l);font-size:11px}
+  .hbadge{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.20);color:rgba(255,255,255,.80);font-size:11px;padding:4px 10px;border-radius:100px}
+  .credit{background:#EEF2FF;border-bottom:1px solid #C7D2FE;text-align:center;padding:8px 16px;font-size:13px;color:#3730A3}
+  .app{max-width:960px;margin:0 auto;padding:40px 24px 80px}
+  .hero{text-align:center;margin-bottom:36px}
+  .hero h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(24px,4vw,38px);font-weight:800;color:var(--navy);line-height:1.15;margin-bottom:8px}
+  .hero p{color:var(--muted);font-size:15px;max-width:500px;margin:0 auto}
+  .card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;max-width:520px;margin:0 auto}
+  .card-head{background:var(--navy);padding:20px 24px;color:#fff}
+  .card-head h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700}
+  .card-head p{font-size:12px;color:rgba(255,255,255,.55);margin-top:2px}
+  .card-body{padding:24px}
+  .type-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+  .type-btn{height:46px;border:1.5px solid var(--border);border-radius:10px;background:#fff;color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;font-family:'Inter',sans-serif}
+  .type-btn:hover{border-color:var(--navy);color:var(--navy)}
+  .type-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .swim-note{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 12px;font-size:12px;color:#1D4ED8;margin-bottom:16px;display:none}
+  .swim-note.show{display:block}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+  .field select{width:100%;height:44px;padding:0 14px;border:1.5px solid var(--border);border-radius:10px;background:#FAFBFF;color:var(--text);font-size:14px;font-family:'Inter',sans-serif;cursor:pointer}
+  .field select:focus{outline:none;border-color:var(--navy)}
+  .chips-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-height:140px;overflow-y:auto;padding:2px}
+  .chip{padding:5px 12px;border-radius:100px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:#fff;color:var(--muted);transition:all .12s}
+  .chip:hover{border-color:var(--navy);color:var(--navy)}
+  .chip.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .chip-count{font-size:11px;color:var(--muted);margin-top:6px}
+  .preview-box{background:var(--bg);border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:13px;display:none;border:1px solid var(--border)}
+  .preview-box.show{display:block}
+  .preview-box strong{color:var(--navy);font-weight:700}
+  .ptag{display:inline-block;background:var(--navy);color:#fff;font-size:10px;padding:2px 8px;border-radius:100px;margin-left:6px;font-weight:600}
+  .gen-btn{width:100%;height:54px;background:linear-gradient(135deg,var(--navy),var(--navy-l));color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:all .15s;font-family:'Plus Jakarta Sans',sans-serif;box-shadow:0 4px 16px rgba(28,46,110,.25)}
+  .gen-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 28px rgba(28,46,110,.35)}
+  .gen-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  .gen-btn.busy{background:linear-gradient(135deg,#374151,#4B5563)}
+  .result-area{max-width:520px;margin:20px auto 0}
+  .result-card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:20px 24px;display:none}
+  .result-card.show{display:block}
+  .dl-btn{width:100%;height:50px;background:linear-gradient(135deg,var(--green),#15803D);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;font-family:'Plus Jakarta Sans',sans-serif;box-shadow:0 4px 16px rgba(22,163,74,.25);margin-bottom:12px;text-decoration:none}
+  .dl-btn:hover{opacity:.9;transform:translateY(-1px)}
+  .result-meta{font-size:13px;color:var(--muted);text-align:center}
+  .result-meta strong{color:var(--text)}
+  .err-box{background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:14px 16px;color:#DC2626;font-size:13px;margin-top:16px;display:none}
+  .err-box.show{display:block}
+  .prog-wrap{text-align:center;padding:24px 0;display:none}
+  .prog-label{font-size:14px;font-weight:600;color:var(--navy);margin-bottom:12px}
+  .prog-bg{background:var(--border);border-radius:100px;height:6px;overflow:hidden;margin-bottom:8px;max-width:300px;margin:0 auto 8px}
+  .prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--navy));border-radius:100px;transition:width .4s ease}
+  .prog-status{font-size:12px;color:var(--muted)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:20px;height:20px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+  footer{text-align:center;padding:32px;color:var(--muted);font-size:12px}
+  .chips-wrap::-webkit-scrollbar{width:4px}
+  .chips-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-gem">💎</div>
+    <div>
+      <div class="logo-text">GEMS PE Lesson Generator</div>
+      <div class="logo-sub">TLAG Framework · Powered by Claude AI</div>
+    </div>
+  </div>
+  <div class="hbadge">Free · No login needed</div>
+</header>
+
+<div class="credit">✏️ Created by <strong>Ahmed Ebrahim</strong> · GEMS Education PE &amp; Swimming Curriculum</div>
+
+<div class="app">
+  <div class="hero">
+    <h1>Generate TLAG Lesson Plans<br>in seconds</h1>
+    <p>Select a grade and week — download a fully branded <strong>.pptx</strong> lesson plan ready to present.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>⚙️ Lesson Settings</h2>
+      <p>Configure then click Generate to download your .pptx</p>
+    </div>
+    <div class="card-body">
+      <div class="type-toggle">
+        <button class="type-btn active" id="btn-pe" onclick="setType('PE')">🏃 PE</button>
+        <button class="type-btn" id="btn-sw" onclick="setType('Swimming')">🏊 Swimming</button>
+      </div>
+      <div class="swim-note" id="swimNote">18-week progression: Water Safety → Front Crawl → Backstroke → Endurance → Assessment</div>
+      <div class="field">
+        <label>Grade</label>
+        <select id="grade" onchange="updateWeeks()">
+          <option value="">Select grade…</option>
+          <option>Grade 1</option><option>Grade 2</option><option>Grade 3</option>
+          <option>Grade 4</option><option>Grade 5</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Mode</label>
+        <select id="mode" onchange="toggleMode()">
+          <option value="single">Single lesson</option>
+          <option value="batch">Multiple lessons</option>
+        </select>
+      </div>
+      <div id="singleWrap" class="field">
+        <label>Week</label>
+        <select id="week" onchange="updatePreview()">
+          <option value="">Select grade first…</option>
+        </select>
+      </div>
+      <div id="batchWrap" style="display:none">
+        <div class="field">
+          <label>Select Weeks</label>
+          <div class="chips-wrap" id="chips"></div>
+          <div class="chip-count" id="chipCount">No weeks selected</div>
+        </div>
+      </div>
+      <div class="preview-box" id="previewBox"></div>
+      <button class="gen-btn" id="genBtn" onclick="generate()" disabled>✨ Generate &amp; Download .pptx</button>
+    </div>
+  </div>
+
+  <div class="result-area">
+    <div class="prog-wrap" id="progWrap">
+      <div class="prog-label" id="progLabel">Generating lesson…</div>
+      <div class="prog-bg"><div class="prog-fill" id="progFill" style="width:5%"></div></div>
+      <div class="prog-status" id="progStatus">Asking Claude AI…</div>
+    </div>
+    <div class="result-card" id="resultCard"></div>
+    <div class="err-box" id="errBox"></div>
+  </div>
+</div>
+
+<footer>Built for GEMS Education · TLAG Framework · Powered by Claude AI</footer>
+
+<script>
+const SWIM={1:'Pool rules & safe entry/exit',2:'Water confidence & submersion',3:'Supine back float',4:'Prone front float',5:'Flutter kick on back',6:'Flutter kick on front',7:'Arm action — catch, pull, recovery',8:'Arms + kick combined',9:'Rotational breathing',10:'Full stroke 5m',11:'Body position supine',12:'Flutter kick on back',13:'Arm action backstroke',14:'Arms + kick combined BS',15:'Full backstroke 5m',16:'Front crawl 10m',17:'Backstroke 10m',18:'End of Unit Assessment'};
+let lessonType='PE',selWeeks=new Set();
+
+function setType(t){lessonType=t;document.getElementById('btn-pe').classList.toggle('active',t==='PE');document.getElementById('btn-sw').classList.toggle('active',t==='Swimming');document.getElementById('swimNote').classList.toggle('show',t==='Swimming');updateWeeks();updatePreview();}
+function toggleMode(){const batch=document.getElementById('mode').value==='batch';document.getElementById('singleWrap').style.display=batch?'none':'block';document.getElementById('batchWrap').style.display=batch?'block':'none';selWeeks.clear();updatePreview();}
+function updateWeeks(){const grade=document.getElementById('grade').value,ws=document.getElementById('week'),chips=document.getElementById('chips');selWeeks.clear();chips.innerHTML='';if(!grade){ws.innerHTML='<option value="">Select grade first…</option>';updatePreview();return;}const count=lessonType==='Swimming'?18:39;ws.innerHTML='<option value="">Select week…</option>';for(let w=1;w<=count;w++){const o=document.createElement('option');o.value=w;o.textContent='Week '+w;ws.appendChild(o);const c=document.createElement('button');c.className='chip';c.textContent='W'+w;const ww=w;c.onclick=()=>toggleChip(ww,c);chips.appendChild(c);}updatePreview();}
+function toggleChip(w,el){selWeeks.has(w)?(selWeeks.delete(w),el.classList.remove('active')):(selWeeks.add(w),el.classList.add('active'));const n=selWeeks.size;document.getElementById('chipCount').textContent=n?n+' week'+(n>1?'s ':' ')+'selected':'No weeks selected';updatePreview();}
+function updatePreview(){const grade=document.getElementById('grade').value,mode=document.getElementById('mode').value,pb=document.getElementById('previewBox'),btn=document.getElementById('genBtn');let valid=false,html='';if(mode==='single'){const week=document.getElementById('week').value;if(grade&&week){valid=true;const tag=`<span class="ptag">${lessonType}</span>`;const extra=lessonType==='Swimming'?`<br><span style="color:#9CA3AF;font-size:12px">📍 ${SWIM[+week]}</span>`:'';html=`<strong>${grade} — Week ${week}</strong>${tag}${extra}<br><span style="color:#9CA3AF;font-size:12px">1 .pptx file will be generated</span>`;}}else if(grade&&selWeeks.size){valid=true;const s=[...selWeeks].map(Number).sort((a,b)=>a-b);html=`<strong>${grade}</strong><span class="ptag">${lessonType}</span> — Weeks ${s.join(', ')}<br><span style="color:#9CA3AF;font-size:12px">${s.length} .pptx files will be generated</span>`;}pb.innerHTML=html;pb.classList.toggle('show',valid);btn.disabled=!valid;}
+
+async function generate(){
+  const grade=document.getElementById('grade').value,mode=document.getElementById('mode').value;
+  const weeks=mode==='single'?[+document.getElementById('week').value]:[...selWeeks].map(Number).sort((a,b)=>a-b);
+  setLoading(true);
+  document.getElementById('resultCard').classList.remove('show');
+  document.getElementById('resultCard').innerHTML='';
+  document.getElementById('errBox').classList.remove('show');
+  document.getElementById('progWrap').style.display='block';
+
+  const files=[];
+  for(let i=0;i<weeks.length;i++){
+    const w=weeks[i];
+    setProgress(i,weeks.length,grade,w);
+    try{
+      const resp=await fetch('/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({grade,week:w,type:lessonType})});
+      if(!resp.ok){const e=await resp.json();throw new Error(e.error||'Server error');}
+      const blob=await resp.blob();
+      const cd=resp.headers.get('Content-Disposition')||'';
+      const fn=cd.match(/filename="?([^"]+)"?/)?.[1]||`G${grade.split(' ')[1]}_W${w}_lesson.pptx`;
+      files.push({blob,fn,week:w});
+    }catch(e){files.push({error:e.message,week:w});}
+  }
+
+  setLoading(false);
+  document.getElementById('progWrap').style.display='none';
+  showResults(grade,weeks,files);
+}
+
+function showResults(grade,weeks,files){
+  const rc=document.getElementById('resultCard');
+  const eb=document.getElementById('errBox');
+  const errors=files.filter(f=>f.error);
+  const ok=files.filter(f=>!f.error);
+
+  if(ok.length){
+    rc.innerHTML='<div style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:15px;font-weight:700;color:var(--navy);margin-bottom:14px">✅ '+ok.length+' lesson'+(ok.length>1?'s':'')+' ready!</div>';
+    for(const f of ok){
+      const url=URL.createObjectURL(f.blob);
+      rc.innerHTML+=`<a class="dl-btn" href="${url}" download="${f.fn}">📥 Download Week ${f.week} — ${f.fn}</a>`;
+    }
+    rc.innerHTML+=`<div class="result-meta">Open in PowerPoint or Google Slides · Branded TLAG template</div>`;
+    rc.classList.add('show');
+  }
+  if(errors.length){
+    eb.innerHTML=errors.map(e=>`⚠ Week ${e.week}: ${e.error}`).join('<br>');
+    eb.classList.add('show');
+  }
+}
+
+function setProgress(i,total,grade,week){const pct=Math.round((i/total)*85)+5;document.getElementById('progFill').style.width=pct+'%';document.getElementById('progLabel').textContent=total>1?`Generating ${i+1} of ${total} lessons…`:'Generating lesson…';document.getElementById('progStatus').textContent=`${grade} Week ${week} — asking Claude AI…`;}
+function setLoading(on){const btn=document.getElementById('genBtn');if(on){btn.classList.add('busy');btn.innerHTML='<div class="spinner"></div> Generating…';btn.disabled=true;}else{btn.classList.remove('busy');btn.innerHTML='✨ Generate &amp; Download .pptx';btn.disabled=false;}}
+</script>
+</body>
+</html>
