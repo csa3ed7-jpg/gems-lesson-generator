@@ -1,14 +1,18 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import google.generativeai as genai
-import os
-import json
+import os, json, io
+from pptx import Presentation
+from pptx.util import Pt
+from pptx.dml.color import RGBColor
 
 app = Flask(__name__)
 CORS(app)
 
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-model = genai.GenerativeModel("gemini-2.5-flash")
+model = genai.GenerativeModel("gemini-1.5-flash")
+
+TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), 'template.pptx')
 
 SWIM = {
     1:'Pool rules & safe entry/exit', 2:'Water confidence & submersion',
@@ -97,6 +101,143 @@ def get_week_data(grade, week, lesson_type):
             fb = k
     return gd.get(fb, {"unit": "Physical Education", "std": "PE Standards", "lo": "demonstrate physical literacy skills"})
 
+
+# ── PPTX Builder ─────────────────────────────────────────────────────────────
+
+def set_placeholder(shape, lines, bold_labels=None, green_lines=None):
+    tf = shape.text_frame
+    tf.clear()
+    bold_labels = bold_labels or []
+    green_lines = green_lines or []
+    for i, line in enumerate(lines):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        run = p.add_run()
+        run.text = line
+        run.font.size = Pt(16)
+        if any(line.startswith(lbl) for lbl in bold_labels):
+            run.font.bold = True
+        if line in green_lines:
+            run.font.color.rgb = RGBColor(0x16, 0xA3, 0x4A)
+
+def get_ph(slide, idx):
+    for shape in slide.shapes:
+        if shape.has_text_frame and shape.placeholder_format and shape.placeholder_format.idx == idx:
+            return shape
+    return None
+
+def build_pptx(grade, week, lesson):
+    prs = Presentation(TEMPLATE_PATH)
+    slides = prs.slides
+    d = lesson
+
+    # Slide 1 — Title
+    s = slides[0]
+    p0 = get_ph(s, 0)
+    if p0:
+        p0.text_frame.paragraphs[0].text = 'Learn Like a GEM'
+    p1 = get_ph(s, 1)
+    if p1:
+        set_placeholder(p1, [
+            'Subject: Physical Education',
+            f'Grade: {grade}    |    Unit: {d["unit"]}',
+            f'Lesson: {d["title"]}',
+            f'Date: Week {week}',
+        ])
+
+    # Slide 2 — Do Now
+    s = slides[1]
+    p1 = get_ph(s, 1)
+    if p1:
+        dn = d['doNow']
+        lines = [f'{i+1}.   {q}' for i, q in enumerate(dn['questions'])]
+        lines += ['', f'Teacher will: {dn["teacherWill"]}', f'Students will: {dn["studentsWill"]}']
+        set_placeholder(p1, lines, bold_labels=['Teacher will:', 'Students will:'])
+
+    # Slide 3 — Learning Outcome + To Know
+    s = slides[2]
+    p_lo = get_ph(s, 1)
+    if p_lo:
+        lines = [d['lo'], '',
+                 '✔  Apply the skill with control',
+                 '✔  Use key vocabulary correctly',
+                 '', f'Standard: {d["standard"]}']
+        set_placeholder(p_lo, lines,
+                        green_lines=['✔  Apply the skill with control', '✔  Use key vocabulary correctly'])
+    p_tk = get_ph(s, 10)
+    if p_tk:
+        tk = d['toKnow']
+        lines = (
+            ['Tier 2 Vocabulary:', '   ' + '  •  '.join(tk['tier2']), '',
+             'Tier 3 Vocabulary:', '   ' + '  •  '.join(tk['tier3']), '',
+             'What students need to know:'] +
+            [f'   • {c}' for c in tk['concepts']]
+        )
+        set_placeholder(p_tk, lines, bold_labels=['Tier 2', 'Tier 3', 'What students'])
+
+    # Slide 4 — I Do
+    s = slides[3]
+    p1 = get_ph(s, 1)
+    if p1:
+        id_ = d['iDo']
+        lines = [f'{st["label"]}: {st["text"]}' for st in id_['steps']]
+        lines += ['', f'Think-Aloud: "{id_["thinkAloud"]}"', '',
+                  f'Teacher will: {id_["teacherWill"]}',
+                  f'Students will: {id_["studentsWill"]}']
+        set_placeholder(p1, lines, bold_labels=['Step', 'Teacher will:', 'Students will:'])
+
+    # Slide 5 — We Do
+    s = slides[4]
+    p1 = get_ph(s, 1)
+    if p1:
+        wd = d['weDo']
+        lines = [f'Activity: {wd["activity"]}', ''] + [f'  • {b}' for b in wd['bullets']]
+        lines += ['', 'CFU Questions:'] + [f'  • {q}' for q in wd['cfuQ']]
+        lines += ['', f'Teacher will: {wd["teacherWill"]}', f'Students will: {wd["studentsWill"]}']
+        set_placeholder(p1, lines, bold_labels=['Activity:', 'CFU Questions:', 'Teacher will:', 'Students will:'])
+
+    # Slide 6 — You Do
+    s = slides[5]
+    p1 = get_ph(s, 1)
+    if p1:
+        yd = d['youDo']
+        lines = [f'Task: {yd["task"]}', ''] + [f'  • {b}' for b in yd['bullets']]
+        lines += ['', 'Decision-Making:'] + [f'  • {q}' for q in yd['decisionQ']]
+        lines += ['', f'Teacher will: {yd["teacherWill"]}', f'Students will: {yd["studentsWill"]}']
+        set_placeholder(p1, lines, bold_labels=['Task:', 'Decision-Making:', 'Teacher will:', 'Students will:'])
+
+    # Slide 7 — Affirmative Checking
+    s = slides[6]
+    p1 = get_ph(s, 1)
+    if p1:
+        af = d['affirmative']
+        lines = []
+        for q in af['questions']:
+            lines += [f'Q: {q["q"]}', f'   Look for: {q["lookFor"]}', '']
+        lines += [f'✓ Most understood → {af["mostUnderstood"]}',
+                  f'⚠ Some struggled → {af["someStruggled"]}',
+                  f'✗ Most confused → {af["mostConfused"]}']
+        set_placeholder(p1, lines, bold_labels=['Q:'])
+
+    # Slide 8 — Exit Ticket
+    s = slides[7]
+    p1 = get_ph(s, 1)
+    if p1:
+        et = d['exitTicket']
+        wb = '  |  '.join(et['wordBank'])
+        lines = ['Q1 — Identify:', et['q1'], f'Word Bank: {wb}',
+                 'Answer: ___________________________________', '',
+                 'Q2 — Explain:', et['q2'],
+                 'Answer: ___________________________________']
+        set_placeholder(p1, lines, bold_labels=['Q1 —', 'Q2 —'])
+
+    buf = io.BytesIO()
+    prs.save(buf)
+    buf.seek(0)
+    return buf
+
+
+# ── Routes ────────────────────────────────────────────────────────────────────
+
 @app.route("/")
 def index():
     return send_file("index.html")
@@ -118,7 +259,7 @@ Schema:
   "title": string,
   "unit": string,
   "standard": string,
-  "lo": string (full sentence starting "By the end of this lesson, students will be able to..."),
+  "lo": "By the end of this lesson, students will be able to...",
   "doNow": {{"questions":["","",""],"teacherWill":"","studentsWill":""}},
   "toKnow": {{"tier2":["","",""],"tier3":["","",""],"concepts":["","","","",""]}},
   "iDo": {{"steps":[{{"label":"Step 1","text":""}},{{"label":"Step 2","text":""}},{{"label":"Step 3","text":""}},{{"label":"Step 4","text":""}}],"thinkAloud":"","teacherWill":"","studentsWill":""}},
@@ -136,15 +277,24 @@ LO: students will be able to {d['lo']}{swim_line}"""
     try:
         response = model.generate_content(prompt)
         text = response.text.strip()
-        # Strip markdown fences if present
         if text.startswith("```"):
             text = text.split("```")[1]
             if text.startswith("json"):
                 text = text[4:]
-        lesson = json.loads(text)
-        return jsonify({"ok": True, "lesson": lesson})
+        lesson = json.loads(text.strip())
+
+        pptx_buf = build_pptx(grade, week, lesson)
+        filename = f"G{grade.split()[-1]}_W{week}_{lesson['title'][:30].replace(' ', '_')}.pptx"
+        return send_file(
+            pptx_buf,
+            mimetype='application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            as_attachment=True,
+            download_name=filename
+        )
+
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
