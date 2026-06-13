@@ -324,5 +324,18 @@ def generate_pptx():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
+
+@app.route("/manifest.json")
+def manifest():
+    return send_file("manifest.json", mimetype="application/manifest+json")
+
+@app.route("/service-worker.js")
+def service_worker():
+    return send_file("service-worker.js", mimetype="application/javascript")
+
+@app.route("/icons/<path:filename>")
+def icons(filename):
+    return send_file(f"icons/{filename}", mimetype="image/png")
+
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
